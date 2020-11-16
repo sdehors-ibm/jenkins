@@ -23,19 +23,16 @@
  */
 package hudson.model;
 
-import hudson.model.MultiStageTimeSeries.TimeScale;
 import hudson.model.queue.SubTask;
-
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import org.jfree.chart.JFreeChart;
 import org.junit.Test;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -84,8 +81,7 @@ public class LoadStatisticsTest {
             ls.queueLength.update(1);
         }
 
-        JFreeChart chart = ls.createTrendChart(TimeScale.SEC10).createChart();
-        BufferedImage image = chart.createBufferedImage(400, 200);
+        BufferedImage image = new BufferedImage(400, 200, 0);
 
         File tempFile = File.createTempFile("chart-", "png");
         try (OutputStream os = Files.newOutputStream(tempFile.toPath(), StandardOpenOption.DELETE_ON_CLOSE)) {

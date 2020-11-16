@@ -24,13 +24,9 @@
 package hudson.model;
 
 import com.infradna.tool.bridge_method_injector.WithBridgeMethods;
-import hudson.BulkChange;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.ExtensionPoint;
-import hudson.FeedAdapter;
-import hudson.PermalinkList;
-import hudson.Util;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.*;
 import hudson.cli.declarative.CLIResolver;
 import hudson.model.Descriptor.FormException;
 import hudson.model.Fingerprint.Range;
@@ -39,55 +35,14 @@ import hudson.model.PermalinkProjectAction.Permalink;
 import hudson.model.listeners.ItemListener;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.SCM;
-import hudson.search.QuickSilver;
-import hudson.search.SearchIndex;
-import hudson.search.SearchIndexBuilder;
-import hudson.search.SearchItem;
-import hudson.search.SearchItems;
+import hudson.search.*;
 import hudson.security.ACL;
 import hudson.tasks.LogRotator;
-import hudson.util.AlternativeUiTextProvider;
-import hudson.util.ChartUtil;
-import hudson.util.ColorPalette;
-import hudson.util.CopyOnWriteList;
-import hudson.util.DataSetBuilder;
-import hudson.util.DescribableList;
-import hudson.util.FormApply;
-import hudson.util.Graph;
-import hudson.util.ProcessTree;
-import hudson.util.RunList;
-import hudson.util.ShiftedCategoryAxis;
-import hudson.util.StackedAreaRenderer2;
-import hudson.util.TextFile;
+import hudson.util.*;
 import hudson.widgets.HistoryWidget;
 import hudson.widgets.HistoryWidget.Adapter;
 import hudson.widgets.Widget;
-import java.awt.Color;
-import java.awt.Paint;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.GregorianCalendar;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import javax.servlet.ServletException;
-import jenkins.model.BuildDiscarder;
-import jenkins.model.BuildDiscarderProperty;
-import jenkins.model.DirectlyModifiableTopLevelItemGroup;
-import jenkins.model.Jenkins;
-import jenkins.model.JenkinsLocationConfiguration;
-import jenkins.model.ModelObjectWithChildren;
-import jenkins.model.ProjectNamingStrategy;
-import jenkins.model.RunIdMigrator;
+import jenkins.model.*;
 import jenkins.model.lazy.LazyBuildMixIn;
 import jenkins.scm.RunWithSCM;
 import jenkins.security.HexStringConfidentialKey;
@@ -95,16 +50,6 @@ import jenkins.triggers.SCMTriggerItem;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.FileUtils;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.CategoryAxis;
-import org.jfree.chart.axis.CategoryLabelPositions;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.plot.CategoryPlot;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.renderer.category.StackedAreaRenderer;
-import org.jfree.data.category.CategoryDataset;
-import org.jfree.ui.RectangleInsets;
 import org.jvnet.localizer.Localizable;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -116,6 +61,13 @@ import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.POST;
+
+import javax.servlet.ServletException;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static javax.servlet.http.HttpServletResponse.SC_NO_CONTENT;
@@ -1399,138 +1351,7 @@ public abstract class Job<JobT extends Job<JobT, RunT>, RunT extends Run<JobT, R
     }
 
     public Graph getBuildTimeGraph() {
-        return new Graph(getLastBuildTime(),500,400) {
-            @Override
-            protected JFreeChart createGraph() {
-                class ChartLabel implements Comparable<ChartLabel> {
-                    final Run run;
-
-                    public ChartLabel(Run r) {
-                        this.run = r;
-                    }
-
-                    public int compareTo(ChartLabel that) {
-                        return this.run.number - that.run.number;
-                    }
-
-                    @Override
-                    public boolean equals(Object o) {
-                        // HUDSON-2682 workaround for Eclipse compilation bug
-                        // on (c instanceof ChartLabel)
-                        if (o == null || !ChartLabel.class.isAssignableFrom( o.getClass() ))  {
-                            return false;
-                        }
-                        ChartLabel that = (ChartLabel) o;
-                        return run == that.run;
-                    }
-
-                    public Color getColor() {
-                        // TODO: consider gradation. See
-                        // http://www.javadrive.jp/java2d/shape/index9.html
-                        Result r = run.getResult();
-                        if (r == Result.FAILURE)
-                            return ColorPalette.RED;
-                        else if (r == Result.UNSTABLE)
-                            return ColorPalette.YELLOW;
-                        else if (r == Result.ABORTED || r == Result.NOT_BUILT)
-                            return ColorPalette.GREY;
-                        else
-                            return ColorPalette.BLUE;
-                    }
-
-                    @Override
-                    public int hashCode() {
-                        return run.hashCode();
-                    }
-
-                    @Override
-                    public String toString() {
-                        String l = run.getDisplayName();
-                        if (run instanceof Build) {
-                            String s = ((Build) run).getBuiltOnStr();
-                            if (s != null)
-                                l += ' ' + s;
-                        }
-                        return l;
-                    }
-
-                }
-
-                DataSetBuilder<String, ChartLabel> data = new DataSetBuilder<>();
-                for (Run r : getNewBuilds()) {
-                    if (r.isBuilding())
-                        continue;
-                    data.add(((double) r.getDuration()) / (1000 * 60), "min",
-                            new ChartLabel(r));
-                }
-
-                final CategoryDataset dataset = data.build();
-
-                final JFreeChart chart = ChartFactory.createStackedAreaChart(null, // chart
-                                                                                    // title
-                        null, // unused
-                        Messages.Job_minutes(), // range axis label
-                        dataset, // data
-                        PlotOrientation.VERTICAL, // orientation
-                        false, // include legend
-                        true, // tooltips
-                        false // urls
-                        );
-
-                chart.setBackgroundPaint(Color.white);
-
-                final CategoryPlot plot = chart.getCategoryPlot();
-
-                // plot.setAxisOffset(new Spacer(Spacer.ABSOLUTE, 5.0, 5.0, 5.0, 5.0));
-                plot.setBackgroundPaint(Color.WHITE);
-                plot.setOutlinePaint(null);
-                plot.setForegroundAlpha(0.8f);
-                // plot.setDomainGridlinesVisible(true);
-                // plot.setDomainGridlinePaint(Color.white);
-                plot.setRangeGridlinesVisible(true);
-                plot.setRangeGridlinePaint(Color.black);
-
-                CategoryAxis domainAxis = new ShiftedCategoryAxis(null);
-                plot.setDomainAxis(domainAxis);
-                domainAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_90);
-                domainAxis.setLowerMargin(0.0);
-                domainAxis.setUpperMargin(0.0);
-                domainAxis.setCategoryMargin(0.0);
-
-                final NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
-                ChartUtil.adjustChebyshev(dataset, rangeAxis);
-                rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-
-                StackedAreaRenderer ar = new StackedAreaRenderer2() {
-                    @Override
-                    public Paint getItemPaint(int row, int column) {
-                        ChartLabel key = (ChartLabel) dataset.getColumnKey(column);
-                        return key.getColor();
-                    }
-
-                    @Override
-                    public String generateURL(CategoryDataset dataset, int row,
-                            int column) {
-                        ChartLabel label = (ChartLabel) dataset.getColumnKey(column);
-                        return String.valueOf(label.run.number);
-                    }
-
-                    @Override
-                    public String generateToolTip(CategoryDataset dataset, int row,
-                            int column) {
-                        ChartLabel label = (ChartLabel) dataset.getColumnKey(column);
-                        return label.run.getDisplayName() + " : "
-                                + label.run.getDurationString();
-                    }
-                };
-                plot.setRenderer(ar);
-
-                // crop extra space around the graph
-                plot.setInsets(new RectangleInsets(0, 0, 0, 5.0));
-
-                return chart;
-            }
-        };
+        return null;
     }
 
     private Calendar getLastBuildTime() {

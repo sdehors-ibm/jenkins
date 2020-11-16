@@ -256,10 +256,10 @@ THE SOFTWARE.
       <groupId>net.sf.kxml</groupId>
       <artifactId>kxml2</artifactId>
     </dependency>
-    <dependency>
+    <!--<dependency>
       <groupId>org.jfree</groupId>
       <artifactId>jfreechart</artifactId>
-    </dependency>
+    </dependency>-->
     <dependency>
       <groupId>org.apache.ant</groupId>
       <artifactId>ant</artifactId>
@@ -510,10 +510,10 @@ THE SOFTWARE.
       <groupId>net.java.sezpoz</groupId>
       <artifactId>sezpoz</artifactId>
     </dependency>
-    <dependency>
+   <!-- <dependency>
       <groupId>org.kohsuke.jinterop</groupId>
       <artifactId>j-interop</artifactId>
-    </dependency>
+    </dependency>-->
     <dependency> <!-- Not in BOM, optional -->
       <groupId>org.kohsuke.metainf-services</groupId>
       <artifactId>metainf-services</artifactId>
@@ -767,6 +767,18 @@ THE SOFTWARE.
             </manifest>
           </archive>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

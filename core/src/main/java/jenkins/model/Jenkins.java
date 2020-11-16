@@ -856,6 +856,7 @@ public class Jenkins extends AbstractCIBase implements DirectlyModifiableTopLeve
         "DM_EXIT" // Exit is wanted here
     })
     protected Jenkins(File root, ServletContext context, PluginManager pluginManager) throws IOException, InterruptedException, ReactorException {
+        LOGGER.info("Starting Jenkins !!!!!!!!!!!!!!!");
         oldJenkinsJVM = JenkinsJVM.isJenkinsJVM(); // capture to restore in cleanUp()
         JenkinsJVMAccess._setJenkinsJVM(true); // set it for unit tests as they will not have gone through WebAppMain
         long start = System.currentTimeMillis();

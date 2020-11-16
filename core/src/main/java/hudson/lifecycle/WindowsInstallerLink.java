@@ -23,15 +23,17 @@
  */
 package hudson.lifecycle;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.servlet.ServletException;
-
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.AbortException;
+import hudson.Extension;
+import hudson.Functions;
+import hudson.Launcher.LocalLauncher;
+import hudson.model.ManagementLink;
+import hudson.model.TaskListener;
+import hudson.util.StreamTaskListener;
+import jenkins.model.Jenkins;
+import jenkins.util.SystemProperties;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.tools.ant.DefaultLogger;
@@ -43,18 +45,13 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.AbortException;
-import hudson.Extension;
-import hudson.Functions;
-import hudson.Launcher.LocalLauncher;
-import hudson.model.ManagementLink;
-import hudson.model.TaskListener;
-import hudson.util.StreamTaskListener;
-import hudson.util.jna.DotNet;
-import jenkins.model.Jenkins;
-import jenkins.util.SystemProperties;
+import javax.servlet.ServletException;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link ManagementLink} that allows the installation as a Windows service.
@@ -118,10 +115,6 @@ public class WindowsInstallerLink extends ManagementLink {
         if(installationDir!=null) {
             // installation already complete
             sendError("Installation is already complete",req,rsp);
-            return;
-        }
-        if(!DotNet.isInstalled(4,0)) {
-            sendError(".NET Framework 4.0 or later is required for this feature",req,rsp);
             return;
         }
 

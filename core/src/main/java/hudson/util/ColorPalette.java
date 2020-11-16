@@ -23,12 +23,10 @@
  */
 package hudson.util;
 
-import org.jfree.chart.renderer.category.LineAndShapeRenderer;
-
-import java.awt.Color;
-import java.util.List;
-import java.util.Collections;
+import java.awt.*;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Color constants consistent with the Hudson color palette. 
@@ -53,12 +51,5 @@ public class ColorPalette {
         new Color(0xedd400)
     ));
 
-    /**
-     * Applies {@link #LINE_GRAPH} colors to the given renderer.
-     */
-    public static void apply(LineAndShapeRenderer renderer) {
-        int n=0;
-        for (Color c : LINE_GRAPH)
-            renderer.setSeriesPaint(n++,c);
-    }
+
 }
