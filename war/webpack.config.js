@@ -33,7 +33,7 @@ module.exports = (env, argv) => ({
     "ui-refresh-overrides": [path.join(__dirname, "src/main/less/ui-refresh-overrides.less")],
   },
   output: {
-    path: path.join(__dirname, "src/main/webapp/jsbundles"),
+    path: path.join(__dirname, "target/jsbundles"),
   },
   devtool: argv.mode === 'production' ? 'source-map' : 'inline-cheap-module-source-map',
   plugins: [
@@ -47,7 +47,7 @@ module.exports = (env, argv) => ({
       {
         context: 'src/main/fonts',
         from: "**/*",
-        to: path.join(__dirname, "src/main/webapp/css")
+        to: path.join(__dirname, "src/main/css")
       }
     ]),
     // Clean all assets within the specified output.
